@@ -4,7 +4,6 @@
 package ottl_test
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -59,12 +58,12 @@ func TestNestedConditions_PreserveMeaning(t *testing.T) {
 	tCtx.GetLogRecord().Body().SetStr("fido")
 	tCtx.GetLogRecord().SetSeverityNumber(5)
 
-	matched, err := parsed[0].Eval(context.Background(), tCtx)
+	matched, err := parsed[0].Eval(t.Context(), tCtx)
 	require.NoError(t, err)
 	assert.True(t, matched)
 
 	tCtx.GetLogRecord().Body().SetStr("cat")
-	matched, err = parsed[0].Eval(context.Background(), tCtx)
+	matched, err = parsed[0].Eval(t.Context(), tCtx)
 	require.NoError(t, err)
 	assert.False(t, matched)
 }
@@ -131,7 +130,7 @@ func TestNestedConditions_LongShallowExpression(t *testing.T) {
 
 	// Build a condition with 2500 flat OR clauses (total size > 60 KB, depth 0)
 	var clauses []string
-	for i := 0; i < 2500; i++ {
+	for i := range 2500 {
 		clauses = append(clauses, fmt.Sprintf(`log.body == "%d"`, i))
 	}
 	cond := strings.Join(clauses, " or ")
@@ -142,7 +141,7 @@ func TestNestedConditions_LongShallowExpression(t *testing.T) {
 
 	// Also test 2500 flat parenthesized OR clauses: (log.body == "0") or (log.body == "1") (depth 1)
 	var parenClauses []string
-	for i := 0; i < 2500; i++ {
+	for i := range 2500 {
 		parenClauses = append(parenClauses, fmt.Sprintf(`(log.body == "%d")`, i))
 	}
 	parenCond := strings.Join(parenClauses, " or ")
@@ -158,7 +157,7 @@ func TestNestedConditions_ParenthesesInStringsIgnored(t *testing.T) {
 
 	// 2500 parentheses inside a string literal
 	deepString := strings.Repeat("(", 2500) + strings.Repeat(")", 2500)
-	cond := fmt.Sprintf(`log.body == "%s"`, deepString)
+	cond := fmt.Sprintf("log.body == %q", deepString)
 
 	parsed, err := parser.ParseConditions([]string{cond})
 	require.NoError(t, err)
@@ -166,7 +165,7 @@ func TestNestedConditions_ParenthesesInStringsIgnored(t *testing.T) {
 
 	// String with escaped quotes and brackets
 	escapedString := strings.Repeat(`\"(`, 1500) + strings.Repeat(`)\"`, 1500)
-	stmt := fmt.Sprintf(`set(log.body, "%s")`, escapedString)
+	stmt := `set(log.body, "` + escapedString + `")`
 	parsedStmt, err := parser.ParseStatements([]string{stmt})
 	require.NoError(t, err)
 	require.Len(t, parsedStmt, 1)

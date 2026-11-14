@@ -350,11 +350,12 @@ func checkNestingDepth(raw string) error {
 		}
 
 		if inString {
-			if escaped {
+			switch {
+			case escaped:
 				escaped = false
-			} else if ch == '\\' {
+			case ch == '\\':
 				escaped = true
-			} else if ch == '"' {
+			case ch == '"':
 				inString = false
 			}
 			continue
